@@ -1,93 +1,58 @@
 import streamlit as st
 import requests
-from bs4 import BeautifulSoup
 import openai
-import pandas as pd
+from PIL import Image
+from io import BytesIO
+import random
 
 # Set OpenAI API Key (Replace with your own key)
 openai.api_key = "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"
 
-# Function to fetch past NBA games from ESPN
-def get_past_nba_games():
-    base_url = "https://www.espn.com/nba/scoreboard"
-    response = requests.get(base_url, headers={"User-Agent": "Mozilla/5.0"})
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    game_links = {}
-    games = soup.find_all("section", class_="Scoreboard")
-    for game in games:
-        teams = game.find_all("span", class_="sb-team-short")
-        if len(teams) == 2:
-            matchup = f"{teams[0].text} vs {teams[1].text}"
-            link = game.find("a", class_="AnchorLink")
-            if link and "boxscore" in link["href"]:
-                game_links[matchup] = "https://www.espn.com" + link["href"]
-    
-    return game_links
+# Function to get movie recommendations from TMDB API
+def get_movie_recommendations(genre):
+    api_key = "36bc59273ae877478e029fc346bb6026"
+    base_url = "https://api.themoviedb.org/3/discover/movie"
+    params = {
+        "api_key": api_key,
+        "language": "en-US",
+        "sort_by": "popularity.desc",
+        "with_genres": genre,
+    }
+    response = requests.get(base_url, params=params)
+    if response.status_code == 200:
+        movies = response.json()["results"]
+        return random.choice(movies) if movies else None
+    return None
 
-# Function to scrape NBA box scores from ESPN
-def scrape_nba_box_score(game_url):
-    response = requests.get(game_url, headers={"User-Agent": "Mozilla/5.0"})
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Extracting score
-    scores = {}
-    teams = soup.find_all("div", class_="ScoreCell__TeamName")
-    score_values = soup.find_all("div", class_="ScoreCell__Score")
-    
-    if teams and score_values:
-        scores[teams[0].text] = score_values[0].text
-        scores[teams[1].text] = score_values[1].text
-    
-    # Extracting key player stats
-    stats = {}
-    stat_tables = soup.find_all("table", class_="mod-data")
-    for table in stat_tables:
-        df = pd.read_html(str(table))[0]
-        stats[df.columns[0]] = df.to_dict(orient='records')
-    
-    return scores, stats
-
-# Function to generate AI-generated summary
-def generate_game_summary(scores, stats):
-    prompt = f"""
-    Generate a post-game summary based on the following NBA box score:
-    
-    Final Score:
-    {list(scores.keys())[0]}: {list(scores.values())[0]}
-    {list(scores.keys())[1]}: {list(scores.values())[1]}
-    
-    Key Player Stats:
-    {stats}
-    
-    Generate three versions:
-    1. Casual fan-friendly recap
-    2. In-depth analysis
-    3. Funny/meme-style summary
-    """
-    
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "system", "content": "You are a sports journalist."},
-                  {"role": "user", "content": prompt}]
+# Function to generate a movie poster with DALL-E
+def generate_movie_poster(movie_title):
+    prompt = f"Create a visually appealing movie poster for the movie '{movie_title}'. Make it eye-catching and cinematic."
+    response = openai.Image.create(
+        model="dall-e-2",
+        prompt=prompt,
+        n=1,
+        size="512x512"
     )
-    
-    return response["choices"][0]["message"]["content"]
+    image_url = response["data"][0]["url"]
+    return image_url
 
 # Streamlit UI
-st.title("🏀 AI-Powered NBA Post-Game Summary Generator")
+st.title("🎬 AI-Powered Movie Recommender & Poster Generator")
 
-games = get_past_nba_games()
-if games:
-    selected_game = st.selectbox("Select a Past Game:", list(games.keys()))
-    if st.button("Generate Summary"):
-        game_url = games[selected_game]
-        scores, stats = scrape_nba_box_score(game_url)
-        if scores:
-            summary = generate_game_summary(scores, stats)
-            st.subheader("Generated Game Summary:")
-            st.write(summary)
-        else:
-            st.error("Could not retrieve game data. Make sure the URL is correct.")
-else:
-    st.error("No past games found. Please check the data source.")
+genres = {"Action": "28", "Comedy": "35", "Drama": "18", "Horror": "27", "Sci-Fi": "878"}
+selected_genre = st.selectbox("Select a Movie Genre:", list(genres.keys()))
+
+if st.button("Get Movie Recommendation"):
+    movie = get_movie_recommendations(genres[selected_genre])
+    if movie:
+        st.subheader(f"🎥 Recommended Movie: {movie['title']}")
+        st.write(f"📅 Release Date: {movie['release_date']}")
+        st.write(f"⭐ Rating: {movie['vote_average']}")
+        st.write(f"📖 Overview: {movie['overview']}")
+        
+        poster_url = generate_movie_poster(movie['title'])
+        response = requests.get(poster_url)
+        image = Image.open(BytesIO(response.content))
+        st.image(image, caption=f"AI-Generated Poster for {movie['title']}")
+    else:
+        st.error("No movies found for this genre. Try again!")
