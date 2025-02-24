@@ -46,14 +46,14 @@ def get_nike_revenue():
 
 # Function to generate AI-based sales predictions
 def generate_sales_prediction(historical_data, target_month):
-    prompt = f"/"/"/
+    prompt = f"""
     Based on the historical revenue trends of Nike, predict the revenue for {target_month}.
     
     Historical Data:
     {historical_data.to_string(index=False)}
     
     Provide an estimated revenue and explain the reasoning behind the prediction based on past trends.
-    "/"/"/
+    """
     
     response = openai.ChatCompletion.create(
         model="gpt-4",
