@@ -5,12 +5,13 @@ from PIL import Image
 from io import BytesIO
 import random
 
-# Set OpenAI API Key (Replace with your own key)
-openai.api_key = "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"
+# Set OpenAI API Key from Streamlit secrets
+openai.api_key = st.secrets["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"]
+
 
 # Function to get movie recommendations from TMDB API
 def get_movie_recommendations(genre):
-    api_key = "36bc59273ae877478e029fc346bb6026"
+    api_key = st.secrets["36bc59273ae877478e029fc346bb6026"]
     base_url = "https://api.themoviedb.org/3/discover/movie"
     params = {
         "api_key": api_key,
@@ -33,8 +34,7 @@ def generate_movie_poster(movie_title):
         n=1,
         size="512x512"
     )
-    image_url = response.data[0].url
-    return image_url
+    return response.data[0].url
 
 # Streamlit UI
 st.title("🎬 AI-Powered Movie Recommender & Poster Generator")
@@ -50,9 +50,12 @@ if st.button("Get Movie Recommendation"):
         st.write(f"⭐ Rating: {movie['vote_average']}")
         st.write(f"📖 Overview: {movie['overview']}")
         
-        poster_url = generate_movie_poster(movie['title'])
-        response = requests.get(poster_url)
-        image = Image.open(BytesIO(response.content))
-        st.image(image, caption=f"AI-Generated Poster for {movie['title']}")
+        try:
+            poster_url = generate_movie_poster(movie['title'])
+            response = requests.get(poster_url)
+            image = Image.open(BytesIO(response.content))
+            st.image(image, caption=f"AI-Generated Poster for {movie['title']}")
+        except Exception as e:
+            st.error("Failed to generate AI poster. Please try again.")
     else:
         st.error("No movies found for this genre. Try again!")
