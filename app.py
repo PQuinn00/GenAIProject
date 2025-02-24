@@ -7,44 +7,44 @@ import pandas as pd
 # Set OpenAI API Key (Replace with your own key)
 openai.api_key = "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"
 
-# Function to fetch past NFL games from Pro Football Reference
+# Function to fetch past NFL games from ESPN
 def get_past_nfl_games():
-    base_url = "https://www.pro-football-reference.com/years/2023/games.htm"
-    response = requests.get(base_url)
+    base_url = "https://www.espn.com/nfl/scoreboard"
+    response = requests.get(base_url, headers={"User-Agent": "Mozilla/5.0"})
     soup = BeautifulSoup(response.text, 'html.parser')
     
     game_links = {}
-    table = soup.find("table", id="games")
-    if table:
-        rows = table.find("tbody").find_all("tr")
-        for row in rows:
-            date = row.find("th").text if row.find("th") else ""
-            teams = row.find_all("td", class_="right gamelink")
-            if len(teams) == 1:
-                link = teams[0].find("a")
-                if link:
-                    team_names = row.find_all("td", class_="left")
-                    if len(team_names) >= 2:
-                        matchup = team_names[0].text + " vs " + team_names[1].text
-                        game_links[matchup] = "https://www.pro-football-reference.com" + link["href"]
+    games = soup.find_all("section", class_="Scoreboard")
+    for game in games:
+        teams = game.find_all("span", class_="sb-team-short")
+        if len(teams) == 2:
+            matchup = f"{teams[0].text} vs {teams[1].text}"
+            link = game.find("a", class_="AnchorLink")
+            if link and "boxscore" in link["href"]:
+                game_links[matchup] = "https://www.espn.com" + link["href"]
     
     return game_links
 
-# Function to scrape NFL box scores
+# Function to scrape NFL box scores from ESPN
 def scrape_nfl_box_score(game_url):
-    response = requests.get(game_url)
+    response = requests.get(game_url, headers={"User-Agent": "Mozilla/5.0"})
     soup = BeautifulSoup(response.text, 'html.parser')
     
     # Extracting score
-    teams = soup.find_all('div', class_='scorebox')
-    scores = {team.find('strong').text: team.find('div', class_='score').text for team in teams}
+    scores = {}
+    teams = soup.find_all("div", class_="ScoreCell__TeamName")
+    score_values = soup.find_all("div", class_="ScoreCell__Score")
     
-    # Extracting key player stats (example: QB stats)
+    if teams and score_values:
+        scores[teams[0].text] = score_values[0].text
+        scores[teams[1].text] = score_values[1].text
+    
+    # Extracting key player stats
     stats = {}
-    stat_table = soup.find('table', {'id': 'player_offense'})
-    if stat_table:
-        df = pd.read_html(str(stat_table))[0]
-        stats = df.to_dict(orient='records')
+    stat_tables = soup.find_all("table", class_="mod-data")
+    for table in stat_tables:
+        df = pd.read_html(str(table))[0]
+        stats[df.columns[0]] = df.to_dict(orient='records')
     
     return scores, stats
 
@@ -91,5 +91,3 @@ if games:
             st.error("Could not retrieve game data. Make sure the URL is correct.")
 else:
     st.error("No past games found. Please check the data source.")
-    
-
