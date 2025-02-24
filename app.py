@@ -27,13 +27,13 @@ def get_movie_recommendations(genre):
 # Function to generate a movie poster with DALL-E
 def generate_movie_poster(movie_title):
     prompt = f"Create a visually appealing movie poster for the movie '{movie_title}'. Make it eye-catching and cinematic."
-    response = openai.Image.create(
+    response = openai.images.generate(
         model="dall-e-2",
         prompt=prompt,
         n=1,
         size="512x512"
     )
-    image_url = response["data"][0]["url"]
+    image_url = response.data[0].url
     return image_url
 
 # Streamlit UI
