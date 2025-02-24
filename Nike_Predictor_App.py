@@ -7,14 +7,6 @@ import pandas as pd
 import openai
 from bs4 import BeautifulSoup
 
-def install_lxml():
-    try:
-        import lxml
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "lxml"])
-        import lxml
-install_lxml()
-
 # Set OpenAI API Key (Replace with your own key)
 openai.api_key = "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"
 
