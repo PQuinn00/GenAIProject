@@ -5,11 +5,11 @@ import openai
 import pandas as pd
 
 # Set OpenAI API Key (Replace with your own key)
-openai.api_key = "your-api-key-here"
+openai.api_key = "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"
 
 # Function to fetch past NFL games from Pro Football Reference
 def get_past_nfl_games():
-    base_url = "https://www.pro-football-reference.com/years/2024/games.htm"
+    base_url = "https://www.pro-football-reference.com/years/2023/games.htm"
     response = requests.get(base_url)
     soup = BeautifulSoup(response.text, 'html.parser')
     
@@ -50,15 +50,16 @@ def scrape_nfl_box_score(game_url):
 
 # Function to generate AI-generated summary
 def generate_game_summary(scores, stats):
-    prompt = f"""Generate a post-game summary based on the following box score:
-
+    prompt = f"""
+    Generate a post-game summary based on the following box score:
+    
     Final Score:
     {list(scores.keys())[0]}: {list(scores.values())[0]}
     {list(scores.keys())[1]}: {list(scores.values())[1]}
-
+    
     Key Player Stats:
     {stats}
-
+    
     Generate three versions:
     1. Casual fan-friendly recap
     2. In-depth analysis
@@ -79,7 +80,6 @@ st.title("🏈 AI-Powered NFL Post-Game Summary Generator")
 games = get_past_nfl_games()
 if games:
     selected_game = st.selectbox("Select a Past Game:", list(games.keys()))
-
     if st.button("Generate Summary"):
         game_url = games[selected_game]
         scores, stats = scrape_nfl_box_score(game_url)
@@ -91,3 +91,5 @@ if games:
             st.error("Could not retrieve game data. Make sure the URL is correct.")
 else:
     st.error("No past games found. Please check the data source.")
+    
+
