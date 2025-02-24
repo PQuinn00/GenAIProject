@@ -1,37 +1,23 @@
 # Ensure required libraries are installed
-import subprocess
-import sys
 import streamlit as st
 import requests
 import pandas as pd
 import openai
-from bs4 import BeautifulSoup
+import yfinance as yf
+
 
 # Set OpenAI API Key (Replace with your own key)
 openai.api_key = "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"
 
-
-# Function to scrape Nike's revenue data
+# Function to fetch Nike's revenue data from Yahoo Finance
 def get_nike_revenue():
-    url = "https://www.macrotrends.net/stocks/charts/NKE/nike/revenue"
-    response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-    soup = BeautifulSoup(response.text, 'html.parser')
+    nike = yf.Ticker("NKE")
+    financials = nike.financials.transpose()
     
-    tables = soup.find_all("table")
-    revenue_data = []
-    
-    for table in tables:
-        try:
-            df = pd.read_html(str(table), flavor="lxml")[0]
-            if "Nike Quarterly Revenue" in df.to_string():
-                revenue_data.append(df)
-        except Exception as e:
-            continue
-    
-    if revenue_data:
-        revenue_df = revenue_data[0]
+    if not financials.empty:
+        revenue_df = financials[["Total Revenue"]]
+        revenue_df.reset_index(inplace=True)
         revenue_df.columns = ["Date", "Revenue"]
-        revenue_df.dropna(inplace=True)
         return revenue_df
     else:
         return pd.DataFrame()
@@ -54,7 +40,7 @@ def generate_sales_prediction(historical_data, target_month):
     )
     
     return response["choices"][0]["message"]["content"]
-    
+
 # Streamlit UI
 st.title("👟 AI-Powered Nike Sales Prediction Tool")
 
